@@ -14,11 +14,7 @@ class SembastRunner implements BenchmarkRunner {
     final s = Stopwatch()..start();
     var store = StoreRef<String, int>.main();
 
-    await _db.transaction((txn) async {
-      keys.forEach((key) async {
-        await store.record(key).delete(_db);
-      });
-    });
+    await store.records(keys).delete(_db);
 
     return s.elapsedMilliseconds;
   }
@@ -28,11 +24,7 @@ class SembastRunner implements BenchmarkRunner {
     final s = Stopwatch()..start();
     var store = StoreRef<String, String>.main();
 
-    await _db.transaction((txn) async {
-      keys.forEach((key) async {
-        await store.record(key).delete(_db);
-      });
-    });
+    await store.records(keys).delete(_db);
 
     return s.elapsedMilliseconds;
   }
@@ -63,9 +55,9 @@ class SembastRunner implements BenchmarkRunner {
     var store = StoreRef<String, int>.main();
 
     await _db.transaction((txn) async {
-      entries.forEach((key, val) async {
-        await store.record(key).put(_db, val);
-      });
+      for (var entry in entries.entries) {
+        await store.record(entry.key).put(txn, entry.value);
+      }
     });
 
     return s.elapsedMilliseconds;
@@ -77,9 +69,9 @@ class SembastRunner implements BenchmarkRunner {
     var store = StoreRef<String, String>.main();
 
     await _db.transaction((txn) async {
-      entries.forEach((key, val) async {
-        await store.record(key).put(_db, val);
-      });
+      for (var entry in entries.entries) {
+        await store.record(entry.key).put(txn, entry.value);
+      }
     });
 
     return s.elapsedMilliseconds;
@@ -91,6 +83,10 @@ class SembastRunner implements BenchmarkRunner {
   @override
   Future<void> setUp() async {
     var dir = await getApplicationDocumentsDirectory();
+
+    /// Prevent sembast cooperator during testing to avoid delays.
+    // ignore: invalid_use_of_visible_for_testing_member
+    disableSembastCooperator();
     var homePath = path.join(dir.path, 'sembast');
     if (await Directory(homePath).exists()) {
       await Directory(homePath).delete(recursive: true);
